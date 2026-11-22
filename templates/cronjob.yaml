@@ -11,8 +11,6 @@ spec:
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
-      # A failed run isn't retried: a retry repeats the whole run against Plex, and the pod is kept for the logs.
-      backoffLimit: 0
       template:
         metadata:
           labels:

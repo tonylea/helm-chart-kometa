@@ -5,7 +5,6 @@
 Deploys [Kometa](https://github.com/Kometa-Team/Kometa) from its official image, [`kometateam/kometa`](https://hub.docker.com/r/kometateam/kometa).
 
 Kometa runs as a Kubernetes CronJob: each run is one `--run` that exits when it's done, and a run never starts while the last one is still going.
-A failed run isn't retried, since a retry repeats the whole run against Plex; its pod is kept for the logs.
 Kometa's config directory, `/config`, is a persistent volume holding its SQLite cache, logs, reports and poster backups.
 
 ## Values
