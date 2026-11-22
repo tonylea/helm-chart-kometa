@@ -1,11 +1,11 @@
 {
-  "name": "helm-chart-app-name",
+  "name": "helm-chart-kometa",
   "version": "1.0.0",
-  "description": "Deploys App Name, [what App Name does, in a few words]",
+  "description": "Deploys Kometa, which manages Plex collections, overlays and metadata",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tonylea/helm-chart-app-name.git"
+    "url": "git+https://github.com/tonylea/helm-chart-kometa.git"
   },
   "license": "MIT",
   "scripts": {
