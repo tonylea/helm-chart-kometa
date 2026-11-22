@@ -1,0 +1,20 @@
+{{- if not .Values.config }}
+{{- fail "config needs the content of config.yml" }}
+{{- end }}
+{{- if hasKey .Values.files "config.yml" }}
+{{- fail "files can't hold config.yml; it's set by config" }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kometa.labels" . | nindent 4 }}
+data:
+  config.yml: |
+    {{- .Values.config | trim | nindent 4 }}
+  {{- range $name, $content := .Values.files }}
+  {{ $name }}: |
+    {{- $content | trim | nindent 4 }}
+  {{- end }}

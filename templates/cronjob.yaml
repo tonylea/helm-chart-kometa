@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kometa.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  timeZone: {{ .Values.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "kometa.labels" . | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: {{ .Values.user }}
+            runAsGroup: {{ .Values.group }}
+            fsGroup: {{ .Values.group }}
+            # Every run is a new pod; without this, each one re-owns every file in /config before starting.
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: kometa
+              image: "kometateam/kometa:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              args: [--run, --read-only-config]
+              env:
+                - name: TZ
+                  value: {{ .Values.timeZone | quote }}
+              {{- with .Values.secretEnv }}
+              envFrom:
+                - secretRef:
+                    name: {{ . }}
+              {{- end }}
+              securityContext:
+                readOnlyRootFilesystem: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              volumeMounts:
+                - name: config
+                  mountPath: /config
+                - name: files
+                  mountPath: /config/config.yml
+                  subPath: config.yml
+                  readOnly: true
+                {{- range $name, $content := .Values.files }}
+                - name: files
+                  mountPath: /config/{{ $name }}
+                  subPath: {{ $name }}
+                  readOnly: true
+                {{- end }}
+                {{- if .Values.assets.existingClaim }}
+                - name: assets
+                  mountPath: /config/assets
+                {{- end }}
+                - name: tmp
+                  mountPath: /tmp
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumes:
+            - name: config
+              persistentVolumeClaim:
+                claimName: {{ .Values.persistence.existingClaim | default (printf "%s-config" .Release.Name) }}
+            - name: files
+              configMap:
+                name: {{ .Release.Name }}-config
+            {{- with .Values.assets.existingClaim }}
+            - name: assets
+              persistentVolumeClaim:
+                claimName: {{ . }}
+            {{- end }}
+            - name: tmp
+              emptyDir: {}

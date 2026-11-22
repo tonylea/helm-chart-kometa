@@ -1,0 +1,15 @@
+config: |
+  libraries:
+    Movies:
+      collection_files:
+        - file: config/movies.yml
+  plex:
+    url: http://plex:32400
+    token: <<plextoken>>
+files:
+  movies.yml: |
+    collections:
+      Example:
+        tmdb_collection: 10
+persistence:
+  existingClaim: kometa-config
