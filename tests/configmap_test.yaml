@@ -1,0 +1,44 @@
+suite: ConfigMap
+release:
+  name: kometa
+templates:
+  - templates/configmap.yaml
+tests:
+  - it: holds config.yml and each extra file by its name
+    set:
+      config: |
+        plex:
+          url: http://plex:32400
+      files:
+        movies.yml: |
+          collections:
+            Example:
+              tmdb_collection: 10
+    asserts:
+      - equal:
+          path: metadata.name
+          value: kometa-config
+      - equal:
+          path: data
+          value:
+            config.yml: |
+              plex:
+                url: http://plex:32400
+            movies.yml: |
+              collections:
+                Example:
+                  tmdb_collection: 10
+
+  - it: fails without config.yml's content
+    asserts:
+      - failedTemplate:
+          errorMessage: config needs the content of config.yml
+
+  - it: fails when files holds config.yml
+    set:
+      config: "plex: {}"
+      files:
+        config.yml: "plex: {}"
+    asserts:
+      - failedTemplate:
+          errorMessage: files can't hold config.yml; it's set by config

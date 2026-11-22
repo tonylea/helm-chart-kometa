@@ -1,0 +1,192 @@
+suite: CronJob
+release:
+  name: kometa
+templates:
+  - templates/cronjob.yaml
+tests:
+  - it: runs one Kometa run at a time, daily in UTC, without retrying a failed one
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "@daily"
+      - equal:
+          path: spec.timeZone
+          value: Etc/UTC
+      - equal:
+          path: spec.concurrencyPolicy
+          value: Forbid
+      - equal:
+          path: spec.jobTemplate.spec.backoffLimit
+          value: 0
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.restartPolicy
+          value: Never
+
+  - it: uses the schedule and time zone, and gives the zone to TZ
+    set:
+      schedule: "0 5 * * *"
+      timeZone: Europe/London
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "0 5 * * *"
+      - equal:
+          path: spec.timeZone
+          value: Europe/London
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          value:
+            - name: TZ
+              value: Europe/London
+
+  - it: runs once with a read-only config, from the chart's appVersion
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: kometateam/kometa:v2.5.5
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args
+          value: [--run, --read-only-config]
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+
+  - it: uses the image tag when one is set
+    set:
+      image.tag: v2.5.4
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: kometateam/kometa:v2.5.4
+
+  - it: runs as the user and group, non-root, with no service links or API token
+    set:
+      user: 1026
+      group: 100
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            runAsUser: 1026
+            runAsGroup: 100
+            fsGroup: 100
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.enableServiceLinks
+          value: false
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.automountServiceAccountToken
+          value: false
+
+  - it: runs with a read-only root filesystem and no capabilities
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].securityContext
+          value:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+
+  - it: takes no env from a Secret unless one is named
+    asserts:
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.containers[0].envFrom
+
+  - it: takes every key of the Secret as an env var
+    set:
+      secretEnv: kometa
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].envFrom
+          value:
+            - secretRef:
+                name: kometa
+
+  - it: mounts the config claim, config.yml and each file read-only beside it, and an emptyDir for /tmp
+    set:
+      files:
+        movies.yml: "collections: {}"
+        overlays.yml: "overlays: {}"
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: config
+              mountPath: /config
+            - name: files
+              mountPath: /config/config.yml
+              subPath: config.yml
+              readOnly: true
+            - name: files
+              mountPath: /config/movies.yml
+              subPath: movies.yml
+              readOnly: true
+            - name: files
+              mountPath: /config/overlays.yml
+              subPath: overlays.yml
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          value:
+            - name: config
+              persistentVolumeClaim:
+                claimName: kometa-config
+            - name: files
+              configMap:
+                name: kometa-config
+            - name: tmp
+              emptyDir: {}
+
+  - it: mounts an existing claim for /config
+    set:
+      persistence.existingClaim: my-config
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].persistentVolumeClaim.claimName
+          value: my-config
+
+  - it: mounts the assets claim as the asset directory
+    set:
+      assets.existingClaim: kometa-assets
+    asserts:
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+          content:
+            name: assets
+            mountPath: /config/assets
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          content:
+            name: assets
+            persistentVolumeClaim:
+              claimName: kometa-assets
+
+  - it: passes the resources and affinity
+    set:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values: [arm64]
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].resources
+          value:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key
+          value: kubernetes.io/arch

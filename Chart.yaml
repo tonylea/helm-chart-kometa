@@ -1,0 +1,9 @@
+apiVersion: v2
+name: kometa
+description: Deploys Kometa, which manages Plex collections, overlays and metadata
+type: application
+version: 1.0.0
+appVersion: "v2.5.5"
+home: https://github.com/tonylea/helm-chart-kometa
+sources:
+  - https://github.com/Kometa-Team/Kometa
