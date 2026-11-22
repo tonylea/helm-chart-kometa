@@ -1,34 +1,25 @@
 image:
-  # Empty uses the chart's appVersion.
   tag: ""
 
 user: 1000
 group: 1000
 
-# When a Kometa run starts, in timeZone; TZ is set to the same zone.
 schedule: "@daily"
 timeZone: Etc/UTC
 
-# The content of config.yml.
 config: ""
 
-# Playlist, collection and overlay files, by file name, mounted beside config.yml in /config.
 files: {}
 
-# An existing Secret whose keys become env vars: KOMETA_<NAME> is read in config.yml as <<name>>.
-# A name can't contain underscores.
 secretEnv: ""
 
 resources: {}
 
-# /config: Kometa's SQLite cache, logs, reports and poster backups.
-# An empty storageClassName uses the cluster's default class.
 persistence:
   existingClaim: ""
   storageClassName: ""
   size: 10Gi
 
-# An existing claim mounted as Kometa's asset directory, /config/assets.
 assets:
   existingClaim: ""
 
