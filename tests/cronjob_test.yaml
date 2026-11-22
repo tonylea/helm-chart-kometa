@@ -4,14 +4,14 @@ release:
 templates:
   - templates/cronjob.yaml
 tests:
-  - it: runs one Kometa run at a time, daily in UTC
+  - it: runs one Kometa run at a time, daily at 05:00 London time
     asserts:
       - equal:
           path: spec.schedule
-          value: "@daily"
+          value: "0 5 * * *"
       - equal:
           path: spec.timeZone
-          value: Etc/UTC
+          value: Europe/London
       - equal:
           path: spec.concurrencyPolicy
           value: Forbid
@@ -21,20 +21,20 @@ tests:
 
   - it: uses the schedule and time zone, and gives the zone to TZ
     set:
-      schedule: "0 5 * * *"
-      timeZone: Europe/London
+      schedule: "30 3 * * 1"
+      timeZone: Europe/Berlin
     asserts:
       - equal:
           path: spec.schedule
-          value: "0 5 * * *"
+          value: "30 3 * * 1"
       - equal:
           path: spec.timeZone
-          value: Europe/London
+          value: Europe/Berlin
       - equal:
           path: spec.jobTemplate.spec.template.spec.containers[0].env
           value:
             - name: TZ
-              value: Europe/London
+              value: Europe/Berlin
 
   - it: runs once with a read-only config, from the chart's appVersion
     asserts:

@@ -14,8 +14,8 @@ Kometa's config directory, `/config`, is a persistent volume holding its SQLite 
 | `image.tag` | the chart's `appVersion` |
 | `user` | `1000` |
 | `group` | `1000` |
-| `schedule` | `@daily` |
-| `timeZone` | `Etc/UTC` |
+| `schedule` | `0 5 * * *` |
+| `timeZone` | `Europe/London` |
 | `config` | none; required |
 | `files` | none |
 | `secretEnv` | none |
@@ -54,8 +54,6 @@ helm install kometa kometa/kometa --values my-values.yaml
 ```
 
 ```yaml
-schedule: "0 5 * * *"
-timeZone: Europe/London
 secretEnv: kometa
 config: |
   libraries:
